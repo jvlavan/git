@@ -233,7 +233,7 @@ static int reset_fd(int fd, const char *path)
 }
 
 static int write_pc_item_to_fd(struct parallel_checkout_item *pc_item, int fd,
-			       const char *path)
+			       const char *path, struct checkout *state)
 {
 	int ret;
 	struct stream_filter *filter;
@@ -347,7 +347,7 @@ void write_pc_item(struct parallel_checkout_item *pc_item,
 		goto out;
 	}
 
-	if (write_pc_item_to_fd(pc_item, fd, path.buf)) {
+	if (write_pc_item_to_fd(pc_item, fd, path.buf, state)) {
 		/* Error was already reported. */
 		pc_item->status = PC_ITEM_FAILED;
 		goto out;
