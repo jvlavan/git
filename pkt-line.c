@@ -461,8 +461,10 @@ int recv_sideband(const char *me, int in_stream, int out)
 	enum sideband_type sideband_type;
 
 	while (1) {
-		len = packet_read(in_stream, NULL, NULL, buf, LARGE_PACKET_MAX,
-				  0);
+		int status = packet_read_with_status(in_stream, NULL, NULL, buf,
+						     LARGE_PACKET_MAX, &len, 0);
+		if (!len && status == PACKET_READ_NORMAL)
+			BUG("missing band designator");
 		if (!demultiplex_sideband(me, buf, len, 0, &scratch,
 					  &sideband_type))
 			continue;
@@ -471,6 +473,9 @@ int recv_sideband(const char *me, int in_stream, int out)
 			write_or_die(out, buf + 1, len - 1);
 			break;
 		default: /* errors: message already written */
+			if (scratch.len > 0)
+				BUG("unhandled incomplete sideband: '%s'",
+				    scratch.buf);
 			return sideband_type;
 		}
 	}
@@ -517,6 +522,8 @@ enum packet_read_status packet_reader_read(struct packet_reader *reader)
 							 reader->options);
 		if (!reader->use_sideband)
 			break;
+		if (!reader->pktlen && reader->status == PACKET_READ_NORMAL)
+			BUG("missing band designator");
 		if (demultiplex_sideband(reader->me, reader->buffer,
 					 reader->pktlen, 1, &scratch,
 					 &sideband_type))
